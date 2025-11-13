@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>因爱悸动</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #ff66a3;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 102, 163, 0.7);
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #ccc;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .heart-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(255, 102, 163, 0.5);
+        }
+        
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff66a3;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(255, 102, 163, 0.9);
+            z-index: 10;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            max-width: 80%;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        button {
+            background: linear-gradient(to right, #ff66a3, #ff3385);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 102, 163, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 102, 163, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            color: #aaa;
+            font-size: 14px;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        
+        .bpm-display {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #ff66a3;
+        }
+        
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .visualizer {
+            width: 100%;
+            height: 80px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .bar {
+            width: 8px;
+            height: 20px;
+            background-color: #ff66a3;
+            border-radius: 4px;
+            transition: height 0.1s ease;
+        }
+        
+        /* 多语言文字样式 */
+        .love-text {
+            position: absolute;
+            color: #ff66a3;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 102, 163, 0.7);
+            pointer-events: none;
+            z-index: 5;
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+            font-size: 14px;
+            transform-origin: center;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .message {
+                font-size: 22px;
+            }
+            
+            .heart-container {
+                height: 400px;
+            }
+            
+            canvas {
+                width: 95%;
+            }
+            
+            .love-text {
+                font-size: 12px;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* 上传按钮样式 */
+        #uploadBtn {
+            background: linear-gradient(to right, #4CAF50, #45a049);
+        }
+        
+        .file-name {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .upload-info {
+            margin-top: 10px;
+            color: #ffcc00;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="pulse">初见乍欢，久处易怦然</h1>
+        <div class="subtitle">生活总是需要一点糖的，愿今天的你是快乐的</div>
+        
+        <div class="heart-container">
+            <canvas id="heartCanvas" width="640" height="480"></canvas>
+            <div class="message" id="message">向雨</div>
+        </div>
+        
+        <div class="bpm-display">当前BPM: <span id="bpmValue">128</span></div>
+        
+        <div class="controls">
+            <button id="playBtn">播放音乐</button>
+            <button id="pauseBtn">暂停音乐</button>
+            <button id="uploadBtn">上传音频</button>
+            <button id="changeMsgBtn">更改消息</button>
+            <button id="changeColorBtn">更改颜色</button>
+        </div>
+        
+        <div class="file-name" id="fileName">未选择文件</div>
+        <div class="upload-info">支持MP3、WAV等常见音频格式</div>
+        
+        <div class="audio-controls">
+            <span>音量:</span>
+            <input type="range" id="volumeSlider" min="0" max="100" value="70">
+        </div>
+        
+        <div class="visualizer" id="visualizer">
+            <!-- 音频可视化条将通过JS动态生成 -->
+        </div>
+        
+        <div class="instructions">
+            <p>这个爱心会根据您上传音乐的节奏跳动</p>
+            <p>BPM(每分钟节拍数): 128 | 节拍同步: 每4拍完成一次完整心跳周期</p>
+            <p>提示: 点击"上传音频"按钮选择您的音乐文件，然后点击"播放音乐"开始体验</p>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入元素 -->
+    <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+
+    <script>
+        // 常量定义
+        const CANVAS_WIDTH = 640;
+        const CANVAS_HEIGHT = 480;
+        const CANVAS_CENTER_X = CANVAS_WIDTH / 2;
+        const CANVAS_CENTER_Y = CANVAS_HEIGHT / 2;
+        const IMAGE_ENLARGE = 11;
+        const HEART_COLOR = "#ff66a3";
+        
+        // 音乐参数 - 默认值
+        let SONG_BPM = 128; // 歌曲的BPM
+        const BEATS_PER_CYCLE = 4; // 每4拍完成一次完整心跳周期
+        
+        // 获取DOM元素
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageElement = document.getElementById('message');
+        const bpmValueElement = document.getElementById('bpmValue');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const changeMsgBtn = document.getElementById('changeMsgBtn');
+        const changeColorBtn = document.getElementById('changeColorBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const visualizer = document.getElementById('visualizer');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameElement = document.getElementById('fileName');
+        
+        // 控制变量
+        let animationId = null;
+        let isPaused = false;
+        let frameCount = 0;
+        const generateFrame = 20;
+        
+        // 计算节拍相关的时间
+        let secondsPerBeat = 60.0 / SONG_BPM;
+        let secondsPerCycle = secondsPerBeat * BEATS_PER_CYCLE;
+        let framesPerCycle = generateFrame;
+        let frameDuration = secondsPerCycle / framesPerCycle;
+        
+        // 爱心点集
+        const points = new Set();
+        const edgeDiffusionPoints = new Set();
+        const centerDiffusionPoints = new Set();
+        const allPoints = {};
+        
+        // 音频相关
+        let audioContext;
+        let audioElement;
+        let analyser;
+        let dataArray;
+        let source;
+        let isAudioPlaying = false;
+        
+        // 多语言"我爱你"文字数组
+        const loveTexts = [
+            { text: "我爱你", lang: "中文" },
+            { text: "I love you", lang: "English" },
+            { text: "Je t'aime", lang: "Français" },
+            { text: "Ti amo", lang: "Italiano" },
+            { text: "Te quiero", lang: "Español" },
+            { text: "Ich liebe dich", lang: "Deutsch" },
+            { text: "愛してる", lang: "日本語" },
+            { text: "사랑해", lang: "한국어" },
+            { text: "Я тебя люблю", lang: "Русский" },
+            { text: "Eu te amo", lang: "Português" },
+            { text: "أحبك", lang: "العربية" },
+            { text: "ฉันรักเธอ", lang: "ไทย" },
+            { text: "Mahal kita", lang: "Filipino" },
+            { text: "Σ'αγαπώ", lang: "Ελληνικά" },
+            { text: "Ik hou van jou", lang: "Nederlands" }
+        ];
+        
+        // 多语言文字元素数组
+        let loveTextElements = [];
+        
+        // 初始化多语言文字
+        function initLoveTexts() {
+            const heartContainer = document.querySelector('.heart-container');
+            
+            // 清空现有的文字元素
+            loveTextElements.forEach(el => {
+                if (el.parentNode === heartContainer) {
+                    heartContainer.removeChild(el);
+                }
+            });
+            loveTextElements = [];
+            
+            // 创建新的文字元素
+            loveTexts.forEach((item, index) => {
+                const textElement = document.createElement('div');
+                textElement.className = 'love-text';
+                textElement.textContent = item.text;
+                textElement.setAttribute('data-lang', item.lang);
+                heartContainer.appendChild(textElement);
+                loveTextElements.push(textElement);
+            });
+        }
+        
+        // 更新多语言文字位置 - 修复环绕问题
+        function updateLoveTexts() {
+            const time = Date.now() * 0.001;
+            const baseRadius = 265; // 基础半径
+            const verticalAmplitude = 30; // 垂直振幅
+            
+            loveTextElements.forEach((element, index) => {
+                // 计算环绕角度 - 确保文字均匀分布在爱心周围
+                const angleOffset = (index / loveTextElements.length) * Math.PI * 2;
+                const angle = angleOffset + time * 0.5;
+                
+                // 计算环绕半径 - 添加轻微变化
+                const radiusVariation = Math.sin(time * 0.7 + index * 0.5) * 20;
+                const radius = baseRadius + radiusVariation;
+                
+                // 计算3D位置 - 使用球形坐标
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle * 0.8) * verticalAmplitude;
+                const z = Math.sin(angle) * radius;
+                
+                // 透视投影 - 调整缩放因子，使靠近时不会过大
+                const scale = 0.5 + 0.5 / (1 + Math.abs(z) / 300);
+                const screenX = CANVAS_CENTER_X + x * scale - 340;
+                const screenY = CANVAS_CENTER_Y + y * scale - 250;
+                
+                // 应用变换
+                element.style.transform = `translate(${screenX}px, ${screenY}px) scale(${scale})`;
+                
+                // 根据深度调整透明度
+                element.style.opacity = 0.3 + scale * 0.7;
+                
+                // 根据深度调整字体大小 - 限制最大字体
+                const baseSize = 20;
+                element.style.fontSize = `${baseSize * scale}px`;
+                
+                // 根据深度调整颜色
+                const colorIntensity = 0.5 + scale * 0.5;
+                element.style.color = `rgba(255, ${102 * colorIntensity}, ${163 * colorIntensity}, ${element.style.opacity})`;
+                
+                // 添加轻微的旋转效果
+                element.style.transform += ` rotate(${Math.sin(time + index) * 5}deg)`;
+            });
+        }
+        
+        // 初始化音频可视化条
+        function initVisualizer() {
+            visualizer.innerHTML = '';
+            for (let i = 0; i < 64; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                visualizer.appendChild(bar);
+            }
+        }
+        
+        // 数学函数
+        const { sin, cos, PI, log, random } = Math;
+        
+        // 爱心形状函数
+        function heartFunction(t, shrinkRatio = IMAGE_ENLARGE) {
+            const x = 16 * (sin(t) ** 3);
+            const y = -(13 * cos(t) - 5 * cos(2 * t) - 2 * cos(3 * t) - cos(4 * t));
+            
+            // 放大
+            const scaledX = x * shrinkRatio;
+            const scaledY = y * shrinkRatio;
+            
+            // 移到画布中央
+            return {
+                x: scaledX + CANVAS_CENTER_X,
+                y: scaledY + CANVAS_CENTER_Y
+            };
+        }
+        
+        // 内部扩散函数
+        function scatterInside(x, y, beta = 0.15) {
+            const ratioX = -beta * log(random());
+            const ratioY = -beta * log(random());
+            const dx = ratioX * (x - CANVAS_CENTER_X);
+            const dy = ratioY * (y - CANVAS_CENTER_Y);
+            return {
+                x: x - dx,
+                y: y - dy
+            };
+        }
+        
+        // 收缩函数
+        function shrink(x, y, ratio) {
+            const force = -1 / (((x - CANVAS_CENTER_X) ** 2 + (y - CANVAS_CENTER_Y) ** 2) ** 0.6);
+            const dx = ratio * force * (x - CANVAS_CENTER_X);
+            const dy = ratio * force * (y - CANVAS_CENTER_Y);
+            return {
+                x: x - dx,
+                y: y - dy
+            };
+        }
+        
+        // 曲线函数 - 修改为与音乐节拍同步
+        function curve(p, timeRatio) {
+            // 使用timeRatio来同步BPM，同时保留原有的sin波形产生跳动感
+            return timeRatio * (2 * (2 * sin(4 * p)) / (2 * PI));
+        }
+        
+        // 计算位置
+        function calcPosition(x, y, ratio) {
+            const force = 1 / (((x - CANVAS_CENTER_X) ** 2 + (y - CANVAS_CENTER_Y) ** 2) ** 0.520);
+            const dx = ratio * force * (x - CANVAS_CENTER_X) + (random() * 2 - 1);
+            const dy = ratio * force * (y - CANVAS_CENTER_Y) + (random() * 2 - 1);
+            return {
+                x: x - dx,
+                y: y - dy
+            };
+        }
+        
+        // 构建爱心点集
+        function buildHeartPoints(number) {
+            // 生成基础点
+            for (let i = 0; i < number; i++) {
+                const t = random() * 2 * PI;
+                const { x, y } = heartFunction(t);
+                points.add(`${x},${y}`);
+            }
+            
+            // 边缘扩散点
+            points.forEach(point => {
+                const [x, y] = point.split(',').map(Number);
+                for (let i = 0; i < 3; i++) {
+                    const newPoint = scatterInside(x, y, 0.05);
+                    edgeDiffusionPoints.add(`${newPoint.x},${newPoint.y}`);
+                }
+            });
+            
+            // 中心扩散点
+            const pointArray = Array.from(points);
+            for (let i = 0; i < 4000; i++) {
+                const randomPoint = pointArray[Math.floor(random() * pointArray.length)];
+                const [x, y] = randomPoint.split(',').map(Number);
+                const newPoint = scatterInside(x, y, 0.17);
+                centerDiffusionPoints.add(`${newPoint.x},${newPoint.y}`);
+            }
+        }
+        
+        // 计算帧数据 - 修改为与音乐节拍同步
+        function calcFrame(generateFrame) {
+            // 计算基于BPM和时间的比例因子
+            // 爱心跳动周期与歌曲节拍同步
+            const timeInHeartCycle = (generateFrame * 0.1) % (2 * PI); // 模拟时间在爱心周期中的位置
+            
+            // 计算一个与BPM同步的基础比例，使跳动周期符合目标BPM
+            const baseRatio = 10 * (secondsPerCycle / (2 * PI)) * 5; // 缩放因子可根据效果调整
+            
+            // 使用修改后的curve函数
+            const ratio = baseRatio * curve(timeInHeartCycle, 1); // 这里传递1保持原有波形，主要通过base_ratio控制周期
+            
+            const haloRadius = 4 + 6 * (1 + curve(timeInHeartCycle, 1));
+            const haloNumber = 3000 + 4000 * Math.abs(curve(timeInHeartCycle, 1) ** 2);
+            
+            const allPointsArray = [];
+            
+            // 光晕点
+            const heartHaloPoint = new Set();
+            for (let i = 0; i < haloNumber; i++) {
+                const t = random() * 2 * PI;
+                let { x, y } = heartFunction(t, 11.6);
+                const shrunk = shrink(x, y, haloRadius);
+                x = shrunk.x;
+                y = shrunk.y;
+                
+                const pointKey = `${x},${y}`;
+                if (!heartHaloPoint.has(pointKey)) {
+                    heartHaloPoint.add(pointKey);
+                    x += random() * 28 - 14;
+                    y += random() * 28 - 14;
+                    const size = [1, 2, 2][Math.floor(random() * 3)];
+                    allPointsArray.push({ x, y, size });
+                }
+            }
+            
+            // 轮廓点
+            points.forEach(point => {
+                const [x, y] = point.split(',').map(Number);
+                const newPos = calcPosition(x, y, ratio);
+                const size = Math.floor(random() * 3) + 1;
+                allPointsArray.push({ x: newPos.x, y: newPos.y, size });
+            });
+            
+            // 边缘扩散点
+            edgeDiffusionPoints.forEach(point => {
+                const [x, y] = point.split(',').map(Number);
+                const newPos = calcPosition(x, y, ratio);
+                const size = Math.floor(random() * 2) + 1;
+                allPointsArray.push({ x: newPos.x, y: newPos.y, size });
+            });
+            
+            // 中心扩散点
+            centerDiffusionPoints.forEach(point => {
+                const [x, y] = point.split(',').map(Number);
+                const newPos = calcPosition(x, y, ratio);
+                const size = Math.floor(random() * 2) + 1;
+                allPointsArray.push({ x: newPos.x, y: newPos.y, size });
+            });
+            
+            allPoints[generateFrame] = allPointsArray;
+        }
+        
+        // 初始化爱心
+        function initHeart() {
+            buildHeartPoints(2000);
+            
+            // 预计算所有帧
+            for (let frame = 0; frame < generateFrame; frame++) {
+                calcFrame(frame);
+            }
+        }
+        
+        // 渲染爱心
+        function renderHeart(renderFrame) {
+            const framePoints = allPoints[renderFrame % generateFrame];
+            
+            // 清空画布
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            // 绘制所有点
+            framePoints.forEach(point => {
+                ctx.fillStyle = HEART_COLOR;
+                ctx.fillRect(point.x, point.y, point.size, point.size);
+            });
+        }
+        
+        // 初始化音频
+        function initAudio() {
+            // 创建音频元素
+            audioElement = new Audio();
+            audioElement.loop = true;
+            audioElement.volume = volumeSlider.value / 100;
+            
+            // 延迟创建音频上下文，直到用户交互
+            playBtn.addEventListener('click', function initAudioContext() {
+                if (!audioContext) {
+                    try {
+                        // 创建音频上下文
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        analyser = audioContext.createAnalyser();
+                        source = audioContext.createMediaElementSource(audioElement);
+                        
+                        source.connect(analyser);
+                        analyser.connect(audioContext.destination);
+                        
+                        analyser.fftSize = 128;
+                        const bufferLength = analyser.frequencyBinCount;
+                        dataArray = new Uint8Array(bufferLength);
+                        
+                        // 更新可视化
+                        function updateVisualization() {
+                            if (!isAudioPlaying) return;
+                            
+                            requestAnimationFrame(updateVisualization);
+                            if (analyser && dataArray) {
+                                analyser.getByteFrequencyData(dataArray);
+                                
+                                const bars = document.querySelectorAll('.bar');
+                                for (let i = 0; i < bars.length; i++) {
+                                    const value = dataArray[i];
+                                    const height = Math.max(5, value / 2);
+                                    bars[i].style.height = `${height}px`;
+                                    bars[i].style.backgroundColor = `hsl(${330 + value / 2}, 100%, 65%)`;
+                                }
+                            }
+                        }
+                        
+                        updateVisualization();
+                    } catch (e) {
+                        console.error('音频上下文创建失败:', e);
+                    }
+                }
+                
+                // 移除事件监听器，避免重复初始化
+                playBtn.removeEventListener('click', initAudioContext);
+            });
+        }
+        
+        // 动画循环 - 修改为与音乐节拍同步
+        let lastFrameTime = 0;
+        function animate(currentTime) {
+            if (!lastFrameTime) lastFrameTime = currentTime;
+            
+            const elapsed = currentTime - lastFrameTime;
+            
+            // 根据节拍时间更新帧
+            if (elapsed >= frameDuration * 1000) {
+                if (!isPaused) {
+                    renderHeart(frameCount);
+                    frameCount = (frameCount + 1) % generateFrame;
+                }
+                lastFrameTime = currentTime;
+            }
+            
+            // 更新多语言文字位置
+            updateLoveTexts();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // 事件监听器
+        playBtn.addEventListener('click', () => {
+            if (audioElement && !isAudioPlaying) {
+                // 确保有音频源
+                if (!audioElement.src) {
+                    alert("请先上传音频文件！");
+                    return;
+                }
+                
+                audioElement.play().then(() => {
+                    isAudioPlaying = true;
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                }).catch(e => {
+                    console.error("音频播放失败:", e);
+                    alert("无法播放音频，请确保您已上传有效的音频文件。");
+                });
+            }
+            
+            isPaused = false;
+        });
+        
+        pauseBtn.addEventListener('click', () => {
+            if (audioElement && isAudioPlaying) {
+                audioElement.pause();
+                isAudioPlaying = false;
+            }
+            
+            isPaused = true;
+        });
+        
+        // 上传音频按钮事件
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 文件选择事件
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 检查文件类型
+                if (!file.type.startsWith('audio/')) {
+                    alert("请选择有效的音频文件！");
+                    return;
+                }
+                
+                // 显示文件名
+                fileNameElement.textContent = `已选择: ${file.name}`;
+                
+                // 创建对象URL并设置为音频源
+                const objectURL = URL.createObjectURL(file);
+                if (audioElement) {
+                    audioElement.src = objectURL;
+                    isAudioPlaying = false;
+                    
+                    // 重置音频上下文，以便重新初始化
+                    if (audioContext) {
+                        audioContext.close();
+                        audioContext = null;
+                    }
+                    
+                    // 重新附加事件监听器
+                    playBtn.addEventListener('click', function initAudioContext() {
+                        if (!audioContext) {
+                            try {
+                                // 创建音频上下文
+                                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                                analyser = audioContext.createAnalyser();
+                                source = audioContext.createMediaElementSource(audioElement);
+                                
+                                source.connect(analyser);
+                                analyser.connect(audioContext.destination);
+                                
+                                analyser.fftSize = 128;
+                                const bufferLength = analyser.frequencyBinCount;
+                                dataArray = new Uint8Array(bufferLength);
+                                
+                                // 更新可视化
+                                function updateVisualization() {
+                                    if (!isAudioPlaying) return;
+                                    
+                                    requestAnimationFrame(updateVisualization);
+                                    if (analyser && dataArray) {
+                                        analyser.getByteFrequencyData(dataArray);
+                                        
+                                        const bars = document.querySelectorAll('.bar');
+                                        for (let i = 0; i < bars.length; i++) {
+                                            const value = dataArray[i];
+                                            const height = Math.max(5, value / 2);
+                                            bars[i].style.height = `${height}px`;
+                                            bars[i].style.backgroundColor = `hsl(${330 + value / 2}, 100%, 65%)`;
+                                        }
+                                    }
+                                }
+                                
+                                updateVisualization();
+                            } catch (e) {
+                                console.error('音频上下文创建失败:', e);
+                            }
+                        }
+                        
+                        // 移除事件监听器，避免重复初始化
+                        playBtn.removeEventListener('click', initAudioContext);
+                    });
+                }
+                
+                // 提示用户
+                alert("音频文件已上传，现在可以点击播放按钮开始体验！");
+            }
+        });
+        
+        changeMsgBtn.addEventListener('click', () => {
+            const newMessage = prompt("请输入新的消息:", "你是我戒不掉的心动");
+            if (newMessage) {
+                messageElement.textContent = newMessage;
+            }
+        });
+        
+        changeColorBtn.addEventListener('click', () => {
+            const colors = [
+                "#ff66a3", "#ff3385", "#ff0066", 
+                "#ff6699", "#ff99cc", "#ff4d94",
+                "#ff1a75", "#e60073", "#cc0052"
+            ];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            document.documentElement.style.setProperty('--heart-color', randomColor);
+            
+            // 更新按钮和文本颜色
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.id !== 'uploadBtn') {
+                    btn.style.background = `linear-gradient(to right, ${randomColor}, ${adjustColor(randomColor, -30)})`;
+                }
+            });
+            
+            document.querySelector('h1').style.color = randomColor;
+            messageElement.style.color = randomColor;
+            document.querySelector('.bpm-display').style.color = randomColor;
+            
+            // 更新多语言文字颜色
+            loveTextElements.forEach(element => {
+                element.style.color = randomColor;
+            });
+        });
+        
+        volumeSlider.addEventListener('input', () => {
+            if (audioElement) {
+                audioElement.volume = volumeSlider.value / 100;
+            }
+        });
+        
+        // 工具函数
+        function adjustColor(color, amount) {
+            return '#' + color.replace(/^#/, '').replace(/../g, color => 
+                ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2)
+            );
+        }
+        
+        // 初始化
+        function init() {
+            initHeart();
+            initAudio();
+            initVisualizer();
+            initLoveTexts(); // 初始化多语言文字
+            animate(0);
+            
+            // 显示BPM值
+            bpmValueElement.textContent = SONG_BPM;
+        }
+        
+        // 启动初始化
+        init();
+    </script>
+</body>
+</html>
